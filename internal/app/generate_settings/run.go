@@ -23,7 +23,10 @@ func Run(conf *config.Conf, logger *loggerLogrus.Logger) error {
 			err := serviceProc(name, namespace, registryUrl)
 			if err != nil {
 				errChan <- err
+				return
 			}
+			logger.Logger.Infof("version file for namespace: %s, provider: %s generated successfylly", namespace, name)
+
 		}(provider.Name, provider.Namespace, conf.RegistryAddr)
 	}
 
@@ -44,18 +47,32 @@ func Run(conf *config.Conf, logger *loggerLogrus.Logger) error {
 func serviceProc(name, namespace, registryUrl string) error {
 	url := fmt.Sprintf("%s/%s/%s/versions", registryUrl, namespace, name)
 	resp, err := http.Get(url)
-	if err != nil || resp.StatusCode != 200 {
-		if resp.StatusCode != 200 {
-			return fmt.Errorf("request [%s], status: %s", url, resp.Status)
-		}
+	if err != nil {
+		return err
+	} else if resp.StatusCode != 200 {
+		return fmt.Errorf("request [%s], status: %s", url, resp.Status)
+	}
+
+	outputFolder, err := filepath.Abs("output/settings")
+	if err != nil {
 		return err
 	}
+
 	defer resp.Body.Close()
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
 
-	outputFolder := "./output/settings"
+	err, settingsFileEqual := checkExistVersions(bodyBytes, outputFolder, namespace, name)
+	if err != nil {
+		return err
+	} else if settingsFileEqual {
+		return nil
+	}
 
-	if _, err := os.Stat(outputFolder); os.IsNotExist(err) {
-		err := os.MkdirAll(outputFolder, os.ModePerm)
+	if _, err = os.Stat(outputFolder); os.IsNotExist(err) {
+		err = os.MkdirAll(outputFolder, os.ModePerm)
 		if err != nil {
 			return err
 		}
@@ -68,7 +85,7 @@ func serviceProc(name, namespace, registryUrl string) error {
 	}
 	defer outputFile.Close()
 
-	_, err = io.Copy(outputFile, resp.Body)
+	err = os.WriteFile(outputFilePath, bodyBytes, 0644)
 	if err != nil {
 		return err
 	}
