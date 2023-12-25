@@ -1,6 +1,7 @@
 package main
 
 import (
+	createMirror "cloud-terraform-mirror/internal/app/create_mirror"
 	generateSettings "cloud-terraform-mirror/internal/app/generate_settings"
 	"cloud-terraform-mirror/internal/config"
 	loggerLogrus "cloud-terraform-mirror/pkg/logger"
@@ -28,6 +29,7 @@ func main() {
 			logger.Logger.Errorf("generate_settings error: %v", err.Error())
 			signalCh <- syscall.SIGQUIT
 		}
+		createMirror.Run(conf, logger)
 
 		signalCh <- syscall.SIGQUIT
 	}()
