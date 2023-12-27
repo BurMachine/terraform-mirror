@@ -3,6 +3,7 @@ package createMirror
 import (
 	"cloud-terraform-mirror/internal/models"
 	loggerLogrus "cloud-terraform-mirror/pkg/logger"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -24,26 +25,88 @@ func processing(module *models.Module, logger *loggerLogrus.Logger) error {
 
 	for _, version := range module.Versions {
 		if !slices.Contains(version.Protocols, "4") && !slices.Contains(version.Protocols, "4.0") {
-			platforms := make([]string, 0, 10)
 			for _, p := range version.Platforms {
-				platforms = append(platforms, fmt.Sprintf("-platform=%s_%s", p.OS, p.Arch))
-				//platform := fmt.Sprintf("%s_%s", p.OS, p.Arch)
-				//err := createMainTF(n[1], n[0], version.Version)
-				//if err != nil {
-				//	return err
-				//}
-				//err = terraformMirror(platform)
-				//if err != nil {
-				//	return err
-				//}
+				platform := fmt.Sprintf("%s_%s", p.OS, p.Arch)
+
+				err := createMainTF(n[1], n[0], version.Version)
+				if err != nil {
+					return err
+				}
+
+				err = terraformMirror(platform)
+				if err != nil {
+					if _, err := os.Stat(fmt.Sprintf("tmp_%s.json", n[1])); err != nil {
+						if os.IsNotExist(err) {
+							if _, err = os.Create(fmt.Sprintf("tmp_%s.json", n[1])); err != nil {
+								return err
+							}
+						}
+						return err
+					}
+					data, err := os.ReadFile(fmt.Sprintf("tmp_%s.json", n[1]))
+					if err != nil {
+						return err
+					}
+					errVersions := []models.ErrorVersions{}
+
+					if len(data) != 0 {
+						err = json.Unmarshal(data, &errVersions)
+						if err != nil {
+							return err
+						}
+					}
+
+					errVersions = append(errVersions, models.ErrorVersions{
+						Provider: n[1],
+						Version:  version.Version,
+						Platform: platform,
+					})
+
+					resData, err := json.Marshal(errVersions)
+					if err != nil {
+						return err
+					}
+
+					err = os.WriteFile(fmt.Sprintf("tmp_%s.json", n[1]), resData, os.ModePerm)
+					if err != nil {
+						return err
+					}
+
+					continue
+				}
 			}
-			err := createMainTF(n[1], n[0], version.Version)
-			if err != nil {
+
+		}
+	}
+	// check hash-sums
+	/*
+
+	 */
+
+	// second download attempt
+	logger.Logger.Info("start downloading previously undownloaded files...")
+	if _, err := os.Stat(fmt.Sprintf("tmp_%s.json", n[1])); !os.IsNotExist(err) {
+		data, err := os.ReadFile(fmt.Sprintf("tmp_%s.json", n[1]))
+		if err != nil {
+			return err
+		}
+		errVersions := []models.ErrorVersions{}
+
+		if len(data) != 0 {
+			if err = json.Unmarshal(data, &errVersions); err != nil {
 				return err
 			}
-			err = terraformMirror(platforms)
-			if err != nil {
-				return err
+			for i, version := range errVersions {
+				if err = createMainTF(n[1], n[0], version.Version); err != nil {
+					logger.Logger.Error(fmt.Sprintf("%s/%s error second downoad: %v", n[0], n[1], err))
+					return err
+				}
+				if err = terraformMirror(version.Platform); err != nil {
+					logger.Logger.Error(fmt.Sprintf("%s/%s error second downoad: %v", n[0], n[1], err))
+					return err
+				}
+				logger.Logger.Info(fmt.Sprintf("%s/%s provider downloaded successfully", n[0], n[1]))
+				errVersions[i] = models.ErrorVersions{Provider: "ok"}
 			}
 		}
 	}
@@ -63,8 +126,8 @@ func createMainTF(providerName, providerNamespace, version string) error {
 	return os.WriteFile("main.tf", []byte(content), os.ModePerm)
 }
 
-func terraformMirror(platforms []string) error {
-	args := append([]string{"terraform", "providers", "mirror"}, platforms...)
+func terraformMirror(platform string) error {
+	args := append([]string{"terraform", "providers", "mirror"}, fmt.Sprintf("-platform=%s", platform))
 	args = append(args, "./output/mirror")
 
 	cmd := exec.Command(args[0], args[1:]...)
