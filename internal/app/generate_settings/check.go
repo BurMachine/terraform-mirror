@@ -84,9 +84,8 @@ func checkExistVersions(bodyBytes []byte, outputDir, namespace, name string) (er
 }
 
 func createDefaultDeltaFile(bodyBytes []byte, outDir, namespace, name string) error {
-	if _, err := os.Stat(fmt.Sprintf("./%s/deltas", outDir)); os.IsNotExist(err) {
-		err := os.MkdirAll(outDir, os.ModePerm)
-		if err != nil {
+	if _, err := os.Stat(fmt.Sprintf("%s/deltas", outDir)); os.IsNotExist(err) {
+		if err = os.MkdirAll(fmt.Sprintf("%s/deltas", outDir), os.ModePerm); err != nil {
 			return err
 		}
 	}
