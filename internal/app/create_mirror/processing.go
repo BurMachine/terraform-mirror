@@ -13,7 +13,7 @@ import (
 
 const mirrorFolder = "output/mirror"
 
-func processing(module *models.Module, logger *loggerLogrus.Logger) error {
+func processing(module *models.Module, logger *loggerLogrus.Logger, exitChan chan struct{}) error {
 	if _, err := os.Stat(mirrorFolder); os.IsNotExist(err) {
 		err = os.MkdirAll(mirrorFolder, os.ModePerm)
 		if err != nil {
@@ -72,6 +72,20 @@ func processing(module *models.Module, logger *loggerLogrus.Logger) error {
 						return err
 					}
 
+				}
+
+				select {
+				case <-exitChan:
+					//err = os.Remove(fmt.Sprintf("tmp_%s.json", n[1]))
+					//if err != nil {
+					//	if err.Error() != fmt.Sprintf("remove tmp_%s.json: no such file or directory", n[1]) {
+					//		exitChan <- struct{}{}
+					//		return err
+					//	}
+					//}
+					exitChan <- struct{}{}
+					return nil
+				default:
 					continue
 				}
 			}
@@ -110,6 +124,25 @@ func processing(module *models.Module, logger *loggerLogrus.Logger) error {
 			}
 		}
 	}
+	select {
+	case <-exitChan:
+		//err := os.Remove(fmt.Sprintf("tmp_%s.json", n[1]))
+		//if err != nil {
+		//	if err.Error() != fmt.Sprintf("remove tmp_%s.json: no such file or directory", n[1]) {
+		//		exitChan <- struct{}{}
+		//		return err
+		//	}
+		//}
+		exitChan <- struct{}{}
+		return nil
+	default:
+	}
+	//err := os.Remove(fmt.Sprintf("tmp_%s.json", n[1]))
+	//if err != nil {
+	//	if err.Error() != fmt.Sprintf("remove tmp_%s.json: no such file or directory", n[1]) {
+	//		return err
+	//	}
+	//}
 	return nil
 }
 

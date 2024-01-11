@@ -23,13 +23,16 @@ func main() {
 		logger.Logger.Fatal(fmt.Sprintf("config loading error: %v", err.Error()))
 	}
 
+	exitChan := make(chan struct{})
+	defer close(exitChan)
+
 	go func() {
 		err = generateSettings.Run(conf, logger)
 		if err != nil {
 			logger.Logger.Errorf("generate_settings error: %v", err.Error())
 			signalCh <- syscall.SIGQUIT
 		}
-		createMirror.Run(conf, logger)
+		createMirror.Run(conf, logger, exitChan)
 
 		signalCh <- syscall.SIGQUIT
 	}()
@@ -38,6 +41,8 @@ func main() {
 	if ok {
 		if sig != syscall.SIGQUIT {
 			logger.Logger.Info("gracefully stopping...")
+			exitChan <- struct{}{}
+			<-exitChan
 		}
 	}
 

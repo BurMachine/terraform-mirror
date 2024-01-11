@@ -9,12 +9,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
 const deltaDir = "output/settings/deltas"
 
-func Run(conf *config.Conf, logger *loggerLogrus.Logger) error {
+func Run(conf *config.Conf, logger *loggerLogrus.Logger, exitChan chan struct{}) error {
 	logger.Logger.Info("starting creating local mirror")
 
 	fileCount := 0
@@ -33,11 +34,14 @@ func Run(conf *config.Conf, logger *loggerLogrus.Logger) error {
 			go func(data models.Module) {
 				wg.Add(1)
 				defer wg.Done()
-				err := processing(&data, logger)
+				err := processing(&data, logger, exitChan)
 				if err != nil {
 					errChan <- err
 					return
 				}
+				n := strings.Split(data.ID, "/")
+				os.Remove(fmt.Sprintf("tmp_%s.json", n[1]))
+				fmt.Println("rm", n[1])
 				doneChan <- struct{}{}
 			}(data)
 		}
