@@ -25,4 +25,5 @@ go.work
 output
 main.tf
 tmp_aws.json
-
+.env
+config.yaml
