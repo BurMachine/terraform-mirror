@@ -3,6 +3,7 @@ package main
 import (
 	createMirror "cloud-terraform-mirror/internal/app/create_mirror"
 	generateSettings "cloud-terraform-mirror/internal/app/generate_settings"
+	"cloud-terraform-mirror/internal/clean"
 	"cloud-terraform-mirror/internal/config"
 	loggerLogrus "cloud-terraform-mirror/pkg/logger"
 	"fmt"
@@ -17,8 +18,13 @@ func main() {
 
 	logger := loggerLogrus.Init()
 
+	err := clean.Clean()
+	if err != nil {
+		logger.Logger.Fatal("cleaning error: ", err)
+	}
+
 	conf := config.New()
-	err := conf.LoadConfig()
+	err = conf.LoadConfig()
 	if err != nil {
 		logger.Logger.Fatal(fmt.Sprintf("config loading error: %v", err.Error()))
 	}
@@ -32,14 +38,21 @@ func main() {
 			logger.Logger.Errorf("generate_settings error: %v", err.Error())
 			signalCh <- syscall.SIGQUIT
 		}
-		createMirror.Run(conf, logger, exitChan)
-
+		err = createMirror.Run(conf, logger, exitChan)
+		if err != nil {
+			logger.Logger.Errorf("create mirror error: %v", err.Error())
+			signalCh <- syscall.SIGQUIT
+		}
 		signalCh <- syscall.SIGQUIT
 	}()
 
 	sig, ok := <-signalCh
 	if ok {
 		if sig != syscall.SIGQUIT {
+			//err := clean.Clean()
+			//if err != nil {
+			//	logger.Logger.Warn("cleaning error: ", err)
+			//}
 			logger.Logger.Info("gracefully stopping...")
 			exitChan <- struct{}{}
 			<-exitChan

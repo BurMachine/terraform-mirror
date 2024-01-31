@@ -1,0 +1,9 @@
+providers:
+  - name: aws
+    namespace: hashicorp
+#  - name: sbercloud
+#    namespace: sbercloud-terraform
+#  - name: google
+#    namespace: hashicorp
+#  - name: azure
+#    namespace: hashicorp

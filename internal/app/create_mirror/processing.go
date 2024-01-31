@@ -1,7 +1,9 @@
 package createMirror
 
 import (
+	"cloud-terraform-mirror/internal/config"
 	"cloud-terraform-mirror/internal/models"
+	"cloud-terraform-mirror/internal/obs_uploading"
 	loggerLogrus "cloud-terraform-mirror/pkg/logger"
 	"encoding/json"
 	"fmt"
@@ -13,7 +15,7 @@ import (
 
 const mirrorFolder = "output/mirror"
 
-func processing(module *models.Module, logger *loggerLogrus.Logger, exitChan chan struct{}) error {
+func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.Logger, exitChan chan struct{}) error {
 	if _, err := os.Stat(mirrorFolder); os.IsNotExist(err) {
 		err = os.MkdirAll(mirrorFolder, os.ModePerm)
 		if err != nil {
@@ -35,6 +37,9 @@ func processing(module *models.Module, logger *loggerLogrus.Logger, exitChan cha
 
 				err = terraformMirror(platform)
 				if err != nil {
+					if strings.Contains(err.Error(), "https://registry.terraform.io/.well-known/terraform.json") {
+						continue
+					}
 					if _, err := os.Stat(fmt.Sprintf("tmp_%s.json", n[1])); err != nil {
 						if os.IsNotExist(err) {
 							if _, err = os.Create(fmt.Sprintf("tmp_%s.json", n[1])); err != nil {
@@ -76,13 +81,6 @@ func processing(module *models.Module, logger *loggerLogrus.Logger, exitChan cha
 
 				select {
 				case <-exitChan:
-					//err = os.Remove(fmt.Sprintf("tmp_%s.json", n[1]))
-					//if err != nil {
-					//	if err.Error() != fmt.Sprintf("remove tmp_%s.json: no such file or directory", n[1]) {
-					//		exitChan <- struct{}{}
-					//		return err
-					//	}
-					//}
 					exitChan <- struct{}{}
 					return nil
 				default:
@@ -92,10 +90,6 @@ func processing(module *models.Module, logger *loggerLogrus.Logger, exitChan cha
 
 		}
 	}
-	// check hash-sums
-	/*
-
-	 */
 
 	// second download attempt
 	logger.Logger.Info("start downloading previously undownloaded files...")
@@ -126,23 +120,30 @@ func processing(module *models.Module, logger *loggerLogrus.Logger, exitChan cha
 	}
 	select {
 	case <-exitChan:
-		//err := os.Remove(fmt.Sprintf("tmp_%s.json", n[1]))
-		//if err != nil {
-		//	if err.Error() != fmt.Sprintf("remove tmp_%s.json: no such file or directory", n[1]) {
-		//		exitChan <- struct{}{}
-		//		return err
-		//	}
-		//}
 		exitChan <- struct{}{}
 		return nil
 	default:
 	}
-	//err := os.Remove(fmt.Sprintf("tmp_%s.json", n[1]))
-	//if err != nil {
-	//	if err.Error() != fmt.Sprintf("remove tmp_%s.json: no such file or directory", n[1]) {
-	//		return err
-	//	}
-	//}
+
+	// obs uploading
+	logger.Logger.Info("Starting OBS uploading")
+	dirPath := fmt.Sprintf("output/mirror/registry.terraform.io/%s/%s/", n[0], n[1])
+
+	err := obs_uploading.ObsUpload(conf, dirPath, n[0], n[1])
+	if err != nil {
+		err = obs_uploading.ObsUpload(conf, dirPath, n[0], n[1])
+		if err != nil {
+			return err
+		}
+	}
+	err = obs_uploading.ObsUploadingSettings(conf, fmt.Sprintf("output/settings/%s-%s.json", n[0], n[1]), n[0], n[1])
+	if err != nil {
+		err = obs_uploading.ObsUploadingSettings(conf, fmt.Sprintf("output/settings/%s-%s.json", n[0], n[1]), n[0], n[1])
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

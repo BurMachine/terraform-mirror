@@ -69,13 +69,13 @@ func checkExistVersions(bodyBytes []byte, outputDir, namespace, name string) (er
 	if err != nil {
 		return
 	}
-	if len(resultModule.Versions) != 0 {
+	if len(resultModule.Versions) == 0 {
 		err = createDefaultDeltaFile(resBytes, outputDir, namespace, name)
 		if err != nil {
 			return
 		}
 	} else {
-		err = createDefaultDeltaFile(bodyBytes, outputDir, namespace, name)
+		err = createDefaultDeltaFile(resBytes, outputDir, namespace, name)
 		if err != nil {
 			return
 		}

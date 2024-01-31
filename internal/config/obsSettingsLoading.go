@@ -13,7 +13,7 @@ import (
 // Getting config.yaml from obs
 func LoadConfig(conf *Conf) error {
 	var err error
-	conf.ObsClient, err = obs.New(conf.ObsAccessKey, conf.ObsSecretKey, conf.ObsEndpoint)
+	conf.Obs.ObsClient, err = obs.New(conf.ObsAccessKey, conf.ObsSecretKey, conf.ObsEndpoint)
 	if err != nil {
 		fmt.Printf("Create obsClient error, errMsg: %s", err.Error())
 	}
@@ -22,14 +22,33 @@ func LoadConfig(conf *Conf) error {
 	input.Bucket = "tf-mirror-int"
 	input.Key = "settings/config.yaml"
 
-	output, err := conf.ObsClient.GetObject(input)
+	output, err := conf.Obs.ObsClient.GetObject(input)
 	if err != nil {
-		return err
+		if obsError, ok := err.(obs.ObsError); ok {
+			if obsError.StatusCode != 404 {
+				return errors.Join(err, errors.New(fmt.Sprintf("input key: %s", input.Key)))
+			}
+		}
 	}
-	body, err := io.ReadAll(output.Body)
-	if err != nil {
-		return err
+	var body []byte
+	if output != nil {
+		body, err = io.ReadAll(output.Body)
+		if err != nil {
+			return err
+		}
+	} else {
+		file, err := os.Open("config-default.yaml")
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		body, err = io.ReadAll(file)
+		if err != nil {
+			return err
+		}
 	}
+
 	err = os.WriteFile("config.yaml", body, os.ModePerm)
 	if err != nil {
 		return err
@@ -59,7 +78,7 @@ func (c *Conf) LoadSettingsObs() error {
 
 		input.Key = fmt.Sprintf("settings/settings_providers/%s.json", fileName)
 
-		output, err := c.ObsClient.GetObject(input)
+		output, err := c.Obs.ObsClient.GetObject(input)
 		if err != nil {
 			if obsError, ok := err.(obs.ObsError); ok {
 				if obsError.StatusCode == 404 {
@@ -70,14 +89,17 @@ func (c *Conf) LoadSettingsObs() error {
 			}
 
 		}
-
-		body, err := io.ReadAll(output.Body)
-		if err != nil {
-			return err
-		}
-		err = os.WriteFile(fmt.Sprintf("%s/%s.json", outputFolder, fileName), body, os.ModePerm)
-		if err != nil {
-			return err
+		if output != nil {
+			body, err := io.ReadAll(output.Body)
+			if err != nil {
+				return err
+			}
+			err = os.WriteFile(fmt.Sprintf("%s/%s.json", outputFolder, fileName), body, os.ModePerm)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("obs config loading error: empty object output")
 		}
 
 	}

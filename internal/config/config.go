@@ -2,10 +2,13 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
+	"io"
 	"os"
+	"os/exec"
+	"sync"
 )
 
 type GenerateSettings struct {
@@ -21,8 +24,10 @@ type Conf struct {
 	ObsSecretKey       string           `yaml:"obsSecretKey"`
 	RegistryAddr       string           `yaml:"RegistryAddr,omitempty"`
 	GenerateSettingArr GenerateSettings `yaml:"generate"`
-
-	ObsClient *obs.ObsClient
+	Obs                struct {
+		Mu        *sync.Mutex
+		ObsClient *obs.ObsClient
+	}
 }
 
 func New() *Conf {
@@ -68,6 +73,13 @@ func (c *Conf) LoadConfig() error {
 		return err
 	}
 
+	c.Obs.Mu = &sync.Mutex{}
+
+	err = c.obsUtilConfig()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -78,7 +90,7 @@ func (c *Conf) LoadGenerateSettingsYaml() error {
 	}
 	defer file.Close()
 
-	data, err := ioutil.ReadAll(file)
+	data, err := io.ReadAll(file)
 	if err != nil {
 		return err
 	}
@@ -90,4 +102,15 @@ func (c *Conf) LoadGenerateSettingsYaml() error {
 
 	c.GenerateSettingArr = settings
 	return nil
+}
+
+func (c *Conf) obsUtilConfig() error {
+	args := append([]string{"obsutil", "config"}, fmt.Sprintf("-i=%s", c.ObsAccessKey), fmt.Sprintf("-k=%s", c.ObsSecretKey),
+		fmt.Sprintf("-e=%s", c.ObsEndpoint))
+
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }

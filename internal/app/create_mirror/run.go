@@ -34,14 +34,17 @@ func Run(conf *config.Conf, logger *loggerLogrus.Logger, exitChan chan struct{})
 			go func(data models.Module) {
 				wg.Add(1)
 				defer wg.Done()
-				err := processing(&data, logger, exitChan)
-				if err != nil {
-					errChan <- err
-					return
+				if len(data.Versions) != 0 {
+					err := processing(conf, &data, logger, exitChan)
+					if err != nil {
+						errChan <- err
+						return
+					}
+					n := strings.Split(data.ID, "/")
+					os.Remove(fmt.Sprintf("tmp_%s.json", n[1]))
+					fmt.Println("rm", n[1])
 				}
-				n := strings.Split(data.ID, "/")
-				os.Remove(fmt.Sprintf("tmp_%s.json", n[1]))
-				fmt.Println("rm", n[1])
+
 				doneChan <- struct{}{}
 			}(data)
 		}
