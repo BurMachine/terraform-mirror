@@ -41,3 +41,26 @@ func ObsUploadingSettings(conf *config.Conf, dirPath string, providerNamespace, 
 	conf.Obs.Mu.Unlock()
 	return nil
 }
+
+func ObsUploadLog(conf *config.Conf, fileName string, errFlag bool) error {
+	var path string
+	if errFlag {
+		path = fmt.Sprintf("obs://tf-mirror-int/logs/%s-%s", fileName, "FAIL")
+	} else {
+		path = fmt.Sprintf("obs://tf-mirror-int/logs/%s-%s", fileName, "SUCCESS")
+	}
+
+	conf.Obs.Mu.Lock()
+	defer conf.Obs.Mu.Unlock()
+
+	cmd := exec.Command("obsutil", "sync", fmt.Sprintf("-p=%d", 1), fmt.Sprintf("-j=%d", 1), path)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

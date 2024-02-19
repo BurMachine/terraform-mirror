@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
+	"time"
 )
 
 const mirrorFolder = "output/mirror"
@@ -23,6 +24,11 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 		}
 	}
 
+	start := time.Now()
+	duration := time.Since(start)
+
+	defer logger.Logger.Infof("%s processed for %s", module.ID, duration)
+
 	n := strings.Split(module.ID, "/")
 
 	for _, version := range module.Versions {
@@ -30,10 +36,12 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 			for _, p := range version.Platforms {
 				platform := fmt.Sprintf("%s_%s", p.OS, p.Arch)
 
+				conf.Obs.Mu.Lock()
 				err := createMainTF(n[1], n[0], version.Version)
 				if err != nil {
 					return err
 				}
+				conf.Obs.Mu.Unlock()
 
 				err = terraformMirror(platform)
 				if err != nil {
