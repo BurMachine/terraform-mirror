@@ -7,6 +7,9 @@ import (
 	"cloud-terraform-mirror/internal/config"
 	"cloud-terraform-mirror/internal/obs_uploading"
 	loggerLogrus "cloud-terraform-mirror/pkg/logger"
+	"log"
+	"net/http"
+	"net/url"
 
 	"fmt"
 	"github.com/sirupsen/logrus"
@@ -18,14 +21,34 @@ import (
 )
 
 func main() {
-	myEnvVar := os.Getenv("HTTP_PROXY")
-
-	// Check if the environment variable was found
-	if myEnvVar == "" {
-		fmt.Println("The environment variable 'HTTP_PROXY' is not set.")
-	} else {
-		fmt.Println("The value of 'HTTP_PROXY' is:", myEnvVar)
+	proxyURL, err := url.Parse("https://172.23.144.4:3128")
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+		},
+	}
+	response, err := client.Get("https://registry.terraform.io/hashicorp/aws/versions")
+	if err != nil {
+		fmt.Println("Error making the request:", err)
+		return
+	}
+	defer response.Body.Close()
+
+	// Reading the response body
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return
+	}
+
+	// Printing the response body
+	fmt.Println(string(body))
+
+	//////////
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
