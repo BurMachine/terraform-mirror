@@ -34,6 +34,8 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 
 	n := strings.Split(module.ID, "/")
 
+	fmt.Println(*module)
+
 	for i, version := range module.Versions {
 		fmt.Println(i)
 		if !slices.Contains(version.Protocols, "4") && !slices.Contains(version.Protocols, "4.0") {
