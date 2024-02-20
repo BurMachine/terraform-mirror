@@ -18,6 +18,14 @@ import (
 )
 
 func main() {
+	myEnvVar := os.Getenv("HTTP_PROXY")
+
+	// Check if the environment variable was found
+	if myEnvVar == "" {
+		fmt.Println("The environment variable 'HTTP_PROXY' is not set.")
+	} else {
+		fmt.Println("The value of 'HTTP_PROXY' is:", myEnvVar)
+	}
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
