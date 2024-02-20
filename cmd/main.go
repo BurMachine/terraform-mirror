@@ -7,6 +7,7 @@ import (
 	"cloud-terraform-mirror/internal/config"
 	"cloud-terraform-mirror/internal/obs_uploading"
 	loggerLogrus "cloud-terraform-mirror/pkg/logger"
+	"crypto/tls"
 	"log"
 	"net/http"
 	"net/url"
@@ -29,8 +30,12 @@ func main() {
 	client := &http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(proxyURL),
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, // Используйте это только для отладки
+			},
 		},
 	}
+
 	response, err := client.Get("https://registry.terraform.io/hashicorp/aws/versions")
 	if err != nil {
 		fmt.Println("Error making the request:", err)
