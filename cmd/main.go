@@ -22,6 +22,7 @@ import (
 )
 
 func main() {
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	proxyURL, err := url.Parse("https://172.23.144.4:3128")
 	if err != nil {
 		log.Fatal(err)
@@ -30,9 +31,6 @@ func main() {
 	client := &http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(proxyURL),
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // Используйте это только для отладки
-			},
 		},
 	}
 
