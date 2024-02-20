@@ -23,7 +23,7 @@ import (
 
 func main() {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	proxyURL, err := url.Parse("https://172.23.144.4:3128")
+	proxyURL, err := url.Parse("http://172.23.144.4:3128")
 	if err != nil {
 		log.Fatal(err)
 	}
