@@ -23,4 +23,4 @@ endif
 
 .PHONY: start
 start:
-		go run cmd/main.go
+	export https_proxy=172.23.144.4:3128 && go run cmd/main.go
