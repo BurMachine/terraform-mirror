@@ -17,6 +17,9 @@ import (
 const mirrorFolder = "output/mirror"
 
 func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.Logger, exitChan chan struct{}) error {
+
+	logger.Logger.Infof("starting creating %s", module.ID)
+
 	if _, err := os.Stat(mirrorFolder); os.IsNotExist(err) {
 		err = os.MkdirAll(mirrorFolder, os.ModePerm)
 		if err != nil {
@@ -31,7 +34,8 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 
 	n := strings.Split(module.ID, "/")
 
-	for _, version := range module.Versions {
+	for i, version := range module.Versions {
+		fmt.Println(i)
 		if !slices.Contains(version.Protocols, "4") && !slices.Contains(version.Protocols, "4.0") {
 			for _, p := range version.Platforms {
 				platform := fmt.Sprintf("%s_%s", p.OS, p.Arch)
