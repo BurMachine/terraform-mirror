@@ -49,8 +49,8 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 				}
 				conf.Obs.Mu.Unlock()
 
-				fmt.Println("!")
 				err = terraformMirror(platform)
+				fmt.Println("!")
 				if err != nil {
 					if strings.Contains(err.Error(), "https://registry.terraform.io/.well-known/terraform.json") {
 						continue
