@@ -37,7 +37,7 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 	fmt.Println(*module)
 
 	for i, version := range module.Versions {
-		fmt.Println(i)
+		fmt.Println(i, "-VERSION-", version.Version)
 		if !slices.Contains(version.Protocols, "4") && !slices.Contains(version.Protocols, "4.0") {
 			for _, p := range version.Platforms {
 				platform := fmt.Sprintf("%s_%s", p.OS, p.Arch)
@@ -49,6 +49,7 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 				}
 				conf.Obs.Mu.Unlock()
 
+				fmt.Println("!")
 				err = terraformMirror(platform)
 				if err != nil {
 					if strings.Contains(err.Error(), "https://registry.terraform.io/.well-known/terraform.json") {
