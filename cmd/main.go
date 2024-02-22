@@ -26,6 +26,7 @@ func main() {
 	_, err := os.Create("/root/terraform-mirror/" + logFileName)
 	if err != nil {
 		fmt.Println("log file creating err: ", err.Error())
+		return
 	}
 	file, err := os.OpenFile("/root/terraform-mirror"+logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
@@ -33,6 +34,7 @@ func main() {
 		logrus.SetOutput(mw)
 	} else {
 		fmt.Errorf("logger output creating error: %v", err)
+		return
 	}
 	defer file.Close()
 
