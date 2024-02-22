@@ -1,0 +1,4 @@
+time="2024-02-22T13:39:23+03:00" level=info msg="generate version JSON files for namespace: hashicorp, provider: aws"
+time="2024-02-22T13:39:23+03:00" level=info msg="generate version JSON files for namespace: sbercloud-terraform, provider: sbercloud"
+time="2024-02-22T13:39:23+03:00" level=error msg="generate_settings error: Get \"https://registry.terraform.io/v1/providers/sbercloud-terraform/sbercloud/versions\": proxyconnect tcp: dial tcp 172.23.144.4:3128: connect: connection refused"
+time="2024-02-22T13:39:23+03:00" level=info msg="service stop..."
