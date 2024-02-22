@@ -23,7 +23,7 @@ func main() {
 	logger := loggerLogrus.Init()
 	t := time.Now()
 	logFileName := fmt.Sprintf("%s.log", t.Format(time.RFC3339))
-	file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND|os.O_RDWR, 0666)
 	if err == nil {
 		mw := io.MultiWriter(os.Stdout, file)
 		logrus.SetOutput(mw)
@@ -70,10 +70,6 @@ func main() {
 	sig, ok := <-signalCh
 	if ok {
 		if sig != syscall.SIGQUIT {
-			//err := clean.Clean()
-			//if err != nil {
-			//	logger.Logger.Warn("cleaning error: ", err)
-			//}
 			logger.Logger.Info("gracefully stopping...")
 			exitChan <- struct{}{}
 			<-exitChan
@@ -84,6 +80,5 @@ func main() {
 	if err != nil {
 		logger.Logger.Error(err)
 	}
-	fmt.Println(errFlag)
 	logger.Logger.Info("service stop...")
 }
