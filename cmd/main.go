@@ -23,12 +23,16 @@ func main() {
 	logger := loggerLogrus.Init()
 	t := time.Now()
 	logFileName := fmt.Sprintf("%s.log", t.Format(time.RFC3339))
+	_, err := os.Create(logFileName)
+	if err != nil {
+		fmt.Println("log file creating err: ", err.Error())
+	}
 	file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		mw := io.MultiWriter(os.Stdout, file)
 		logrus.SetOutput(mw)
 	} else {
-		logger.Logger.Fatal("logger init error")
+		fmt.Errorf("logger output creating error: %v", err)
 	}
 	defer file.Close()
 
