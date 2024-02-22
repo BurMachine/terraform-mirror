@@ -53,7 +53,7 @@ func ObsUploadLog(conf *config.Conf, fileName string, errFlag bool) error {
 	conf.Obs.Mu.Lock()
 	defer conf.Obs.Mu.Unlock()
 
-	cmd := exec.Command("obsutil", "sync", fmt.Sprintf("-p=%d", 1), fmt.Sprintf("-j=%d", 1), path)
+	cmd := exec.Command("obsutil", "sync", fmt.Sprintf("-p=%d", 1), fmt.Sprintf("-j=%d", 1), fileName, path)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
