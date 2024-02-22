@@ -27,3 +27,4 @@ main.tf
 tmp_aws.json
 .env
 config.yaml
+*.log
