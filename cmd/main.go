@@ -23,11 +23,11 @@ func main() {
 	logger := loggerLogrus.Init()
 	t := time.Now()
 	logFileName := fmt.Sprintf("%s.log", t.Format(time.RFC3339))
-	_, err := os.Create(logFileName)
+	_, err := os.Create("/root/terraform-mirror/" + logFileName)
 	if err != nil {
 		fmt.Println("log file creating err: ", err.Error())
 	}
-	file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile("/root/terraform-mirror"+logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		mw := io.MultiWriter(os.Stdout, file)
 		logrus.SetOutput(mw)
@@ -81,7 +81,7 @@ func main() {
 		}
 	}
 
-	err = obs_uploading.ObsUploadLog(conf, logFileName, errFlag)
+	err = obs_uploading.ObsUploadLog(conf, "/root/terraform-mirror"+logFileName, errFlag)
 	if err != nil {
 		logger.Logger.Error(err)
 	}
