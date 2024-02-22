@@ -35,7 +35,7 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 	n := strings.Split(module.ID, "/")
 
 	for _, version := range module.Versions {
-		logger.Logger.Infof("loading version: %s - %s", module.ID, version.Version)
+		logger.Logger.Infof("loading version %s:%s", module.ID, version)
 		if !slices.Contains(version.Protocols, "4") && !slices.Contains(version.Protocols, "4.0") {
 			for _, p := range version.Platforms {
 				platform := fmt.Sprintf("%s_%s", p.OS, p.Arch)
