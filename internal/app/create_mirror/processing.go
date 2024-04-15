@@ -7,9 +7,11 @@ import (
 	loggerLogrus "cloud-terraform-mirror/pkg/logger"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 )
@@ -17,6 +19,9 @@ import (
 const mirrorFolder = "output/mirror"
 
 func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.Logger, exitChan chan struct{}) error {
+
+	logger.Logger.Infof("starting creating %s", module.ID)
+
 	if _, err := os.Stat(mirrorFolder); os.IsNotExist(err) {
 		err = os.MkdirAll(mirrorFolder, os.ModePerm)
 		if err != nil {
@@ -32,6 +37,7 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 	n := strings.Split(module.ID, "/")
 
 	for _, version := range module.Versions {
+		logger.Logger.Infof("loading version %s:%s", module.ID, version)
 		if !slices.Contains(version.Protocols, "4") && !slices.Contains(version.Protocols, "4.0") {
 			for _, p := range version.Platforms {
 				platform := fmt.Sprintf("%s_%s", p.OS, p.Arch)
@@ -137,7 +143,12 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 	logger.Logger.Info("Starting OBS uploading")
 	dirPath := fmt.Sprintf("output/mirror/registry.terraform.io/%s/%s/", n[0], n[1])
 
-	err := obs_uploading.ObsUpload(conf, dirPath, n[0], n[1])
+	err := loadNewIndex(n[1], n[0])
+	if err != nil {
+		return err
+	}
+
+	err = obs_uploading.ObsUpload(conf, dirPath, n[0], n[1])
 	if err != nil {
 		err = obs_uploading.ObsUpload(conf, dirPath, n[0], n[1])
 		if err != nil {
@@ -150,6 +161,11 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 		if err != nil {
 			return err
 		}
+	}
+
+	err = loadNewIndex(n[1], n[0])
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -177,4 +193,61 @@ func terraformMirror(platform string) error {
 	cmd.Stderr = os.Stderr
 
 	return cmd.Run()
+}
+
+func loadNewIndex(name, namespace string) error {
+	resp, err := http.Get(fmt.Sprintf("https://registry.terraform.io/v1/providers/%s/%s/versions", namespace, name))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to fetch data: HTTP %d", resp.StatusCode)
+	}
+
+	var data map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		return err
+	}
+
+	var versionNumbers []string
+	for _, v := range data["versions"].([]interface{}) {
+		version := v.(map[string]interface{})
+		protocols := version["protocols"].([]interface{})
+		if len(protocols) == 0 || !containsProtocol(protocols, "4.0") {
+			versionNumbers = append(versionNumbers, version["version"].(string))
+		}
+	}
+
+	sort.Strings(versionNumbers)
+
+	// Создаем словарь с отсортированными версиями
+	versions := make(map[string]interface{})
+	for _, v := range versionNumbers {
+		versions[v] = make(map[string]interface{})
+	}
+	indexData := map[string]interface{}{"versions": versions}
+
+	jsonData, err := json.MarshalIndent(indexData, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(fmt.Sprintf("output/mirror/registry.terraform.io/%s/%s/index.json", namespace, name), jsonData, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func containsProtocol(protocols []interface{}, target string) bool {
+	for _, p := range protocols {
+		if p == target {
+			return true
+		}
+	}
+	return false
 }

@@ -7,11 +7,6 @@ import (
 	"cloud-terraform-mirror/internal/config"
 	"cloud-terraform-mirror/internal/obs_uploading"
 	loggerLogrus "cloud-terraform-mirror/pkg/logger"
-	"crypto/tls"
-	"log"
-	"net/http"
-	"net/url"
-
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -22,38 +17,14 @@ import (
 )
 
 func main() {
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	proxyURL, err := url.Parse("http://172.23.144.4:3128")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	client := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-		},
-	}
-
-	response, err := client.Get("https://registry.terraform.io/hashicorp/aws/versions")
-	if err != nil {
-		fmt.Println("Error making the request:", err)
-		return
-	}
-	defer response.Body.Close()
-
-	// Reading the response body
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		fmt.Println("Error reading response body:", err)
-		return
-	}
-
-	// Printing the response body
-	fmt.Println(string(body))
-
-	//////////
 	signalCh := make(chan os.Signal)
 	signal.Notify(signalCh, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	err := clean.Clean("./*.log")
+	if err != nil {
+		fmt.Errorf("cleaning error: %v", err.Error())
+		return
+	}
 
 	logger := loggerLogrus.Init()
 	t := time.Now()
@@ -63,16 +34,13 @@ func main() {
 		mw := io.MultiWriter(os.Stdout, file)
 		logrus.SetOutput(mw)
 	} else {
-		logger.Logger.Fatal("logger init error")
+		fmt.Errorf("logger output creating error: %v", err)
+		return
 	}
+	defer file.Close()
 
 	mw := io.MultiWriter(os.Stdout, file)
 	logrus.SetOutput(mw)
-
-	err = clean.Clean(logFileName)
-	if err != nil {
-		logger.Logger.Fatal("cleaning error: ", err)
-	}
 
 	conf := config.New()
 	err = conf.LoadConfig()
@@ -105,10 +73,6 @@ func main() {
 	sig, ok := <-signalCh
 	if ok {
 		if sig != syscall.SIGQUIT {
-			//err := clean.Clean()
-			//if err != nil {
-			//	logger.Logger.Warn("cleaning error: ", err)
-			//}
 			logger.Logger.Info("gracefully stopping...")
 			exitChan <- struct{}{}
 			<-exitChan
@@ -119,6 +83,5 @@ func main() {
 	if err != nil {
 		logger.Logger.Error(err)
 	}
-	fmt.Println(errFlag)
 	logger.Logger.Info("service stop...")
 }

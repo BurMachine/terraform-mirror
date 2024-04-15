@@ -27,3 +27,12 @@ main.tf
 tmp_aws.json
 .env
 config.yaml
+*.log
+check_proxy.sh
+err_download.sh
+filter_logs.py
+find_err.sh
+print_downloaded_vers.sh
+run_download.sh
+vendor/
+
