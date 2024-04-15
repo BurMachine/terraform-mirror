@@ -34,3 +34,5 @@ filter_logs.py
 find_err.sh
 print_downloaded_vers.sh
 run_download.sh
+vendor/
+

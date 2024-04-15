@@ -23,6 +23,7 @@ func main() {
 	err := clean.Clean("./*.log")
 	if err != nil {
 		fmt.Errorf("cleaning error: %v", err.Error())
+		return
 	}
 
 	logger := loggerLogrus.Init()
