@@ -17,17 +17,17 @@ func Run(conf *config.Conf, logger *loggerLogrus.Logger) error {
 
 	for _, provider := range conf.GenerateSettingArr.Providers {
 		wg.Add(1)
-		go func(name, namespace, registryUrl string) {
+		go func(name, namespace, minVersion string, registryUrl string) {
 			defer wg.Done()
 			logger.Logger.Infof("generate version JSON files for namespace: %s, provider: %s", namespace, name)
-			err := serviceProc(name, namespace, registryUrl)
+			err := serviceProc(name, namespace, minVersion, registryUrl)
 			if err != nil {
 				errChan <- err
 				return
 			}
 			logger.Logger.Infof("version file for namespace: %s, provider: %s generated successfylly", namespace, name)
 
-		}(provider.Name, provider.Namespace, conf.RegistryAddr)
+		}(provider.Name, provider.Namespace, provider.MinVersion, conf.RegistryAddr)
 	}
 
 	go func() {
@@ -44,7 +44,7 @@ func Run(conf *config.Conf, logger *loggerLogrus.Logger) error {
 	return nil
 }
 
-func serviceProc(name, namespace, registryUrl string) error {
+func serviceProc(name, namespace, minVersion string, registryUrl string) error {
 	url := fmt.Sprintf("%s/%s/%s/versions", registryUrl, namespace, name)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -64,7 +64,7 @@ func serviceProc(name, namespace, registryUrl string) error {
 		return err
 	}
 
-	err, settingsFileEqual := checkExistVersions(bodyBytes, outputFolder, namespace, name)
+	err, settingsFileEqual := checkExistVersions(bodyBytes, outputFolder, namespace, minVersion, name)
 	if err != nil {
 		return err
 	} else if settingsFileEqual {

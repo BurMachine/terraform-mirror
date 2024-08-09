@@ -1,8 +1,9 @@
 providers:
   - name: aws
     namespace: hashicorp
-#  - name: sbercloud
-#    namespace: sbercloud-terraform
+    min_version: 5.0.6
+  - name: sbercloud
+    namespace: sbercloud-terraform
 #  - name: google
 #    namespace: hashicorp
 #  - name: azure

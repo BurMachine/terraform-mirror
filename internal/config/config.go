@@ -13,8 +13,9 @@ import (
 
 type GenerateSettings struct {
 	Providers []struct {
-		Name      string `yaml:"name"`
-		Namespace string `yaml:"namespace"`
+		Name       string `yaml:"name"`
+		Namespace  string `yaml:"namespace"`
+		MinVersion string `yaml:"min_version"`
 	} `yaml:"providers"`
 }
 
@@ -53,32 +54,33 @@ func (c *Conf) LoadConfig() error {
 	if c.ObsSecretKey == "" {
 		return errors.New("env getting error: obsSecretKey is empty")
 	}
+	//
+	//err := LoadConfig(c)
+	//if err != nil {
+	//	return err
+	//}
 
-	err := LoadConfig(c)
+	err := c.LoadGenerateSettingsYaml()
 	if err != nil {
 		return err
 	}
 
-	err = c.LoadGenerateSettingsYaml()
-	if err != nil {
-		return err
-	}
 	c.RegistryAddr = os.Getenv("REGISTRY_ADDR")
 	if c.RegistryAddr == "" {
 		c.RegistryAddr = RegistryAddrDefault
 	}
 
-	err = c.LoadSettingsObs()
-	if err != nil {
-		return err
-	}
+	//err = c.LoadSettingsObs()
+	//if err != nil {
+	//	return err
+	//}
 
 	c.Obs.Mu = &sync.Mutex{}
 
-	err = c.obsUtilConfig()
-	if err != nil {
-		return err
-	}
+	//err = c.obsUtilConfig()
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }
@@ -86,7 +88,11 @@ func (c *Conf) LoadConfig() error {
 func (c *Conf) LoadGenerateSettingsYaml() error {
 	file, err := os.Open("config.yaml")
 	if err != nil {
-		return err
+		if errors.Is(err, os.ErrNotExist) {
+			file, err = os.Open("config-default.yaml")
+		} else {
+			return err
+		}
 	}
 	defer file.Close()
 

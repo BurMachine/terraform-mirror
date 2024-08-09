@@ -11,7 +11,7 @@ import (
 
 // возвращать true/false есть тру то есть дельта, если в ффалсе, то файл просто скопирован в дельты чтобы create всегда читал оттуда
 // , а потом удалял, ошибку возвращал только когда что-то сломалось
-func checkExistVersions(bodyBytes []byte, outputDir, namespace, name string) (err error, settingsFilesEqual bool) {
+func checkExistVersions(bodyBytes []byte, outputDir, namespace, name string, minVersion string) (err error, settingsFilesEqual bool) {
 	if _, err = os.Stat(outputDir); os.IsNotExist(err) {
 		err = os.MkdirAll(outputDir, os.ModePerm)
 		if err != nil {
@@ -80,7 +80,15 @@ func checkExistVersions(bodyBytes []byte, outputDir, namespace, name string) (er
 			return
 		}
 	}
+
+	err = minVersionProcessing()
+
 	return
+}
+
+func minVersionProcessing() error {
+
+	return nil
 }
 
 func createDefaultDeltaFile(bodyBytes []byte, outDir, namespace, name string) error {
