@@ -61,10 +61,20 @@ func checkExistVersions(bodyBytes []byte, outputDir, namespace, name string, min
 
 	versions := findNewVersions(moduleOld.Versions, moduleNew.Versions)
 
+	filteredVersions := make([]models.Version, 0)
+	if minVersion != "" {
+		filteredVersions, err = minVersionProc(versions, minVersion)
+		if err != nil {
+			return
+		}
+		versions = filteredVersions
+	}
+
 	resultModule := models.Module{
 		ID:       moduleOld.ID,
 		Versions: versions,
 	}
+
 	resBytes, err := json.Marshal(resultModule)
 	if err != nil {
 		return
@@ -81,14 +91,7 @@ func checkExistVersions(bodyBytes []byte, outputDir, namespace, name string, min
 		}
 	}
 
-	err = minVersionProcessing()
-
 	return
-}
-
-func minVersionProcessing() error {
-
-	return nil
 }
 
 func createDefaultDeltaFile(bodyBytes []byte, outDir, namespace, name string) error {

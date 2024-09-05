@@ -43,10 +43,12 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 				platform := fmt.Sprintf("%s_%s", p.OS, p.Arch)
 
 				conf.Obs.Mu.Lock()
+
 				err := createMainTF(n[1], n[0], version.Version)
 				if err != nil {
 					return err
 				}
+
 				conf.Obs.Mu.Unlock()
 
 				err = terraformMirror(platform)
@@ -118,6 +120,7 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 			if err = json.Unmarshal(data, &errVersions); err != nil {
 				return err
 			}
+			logger.Logger.Infof("second try download versions: %d", errVersions)
 			for i, version := range errVersions {
 				if err = createMainTF(n[1], n[0], version.Version); err != nil {
 					logger.Logger.Error(fmt.Sprintf("%s/%s error second downoad: %v", n[0], n[1], err))
@@ -139,7 +142,6 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 	default:
 	}
 
-	// obs uploading
 	logger.Logger.Info("Starting OBS uploading")
 	dirPath := fmt.Sprintf("output/mirror/registry.terraform.io/%s/%s/", n[0], n[1])
 
@@ -150,11 +152,13 @@ func processing(conf *config.Conf, module *models.Module, logger *loggerLogrus.L
 
 	err = obs_uploading.ObsUpload(conf, dirPath, n[0], n[1])
 	if err != nil {
+		logger.Logger.Info("Second try to load binaries to OBS")
 		err = obs_uploading.ObsUpload(conf, dirPath, n[0], n[1])
 		if err != nil {
 			return err
 		}
 	}
+	logger.Logger.Infof("provider [%s] uploaded to OBS", module.ID)
 	err = obs_uploading.ObsUploadingSettings(conf, fmt.Sprintf("output/settings/%s-%s.json", n[0], n[1]), n[0], n[1])
 	if err != nil {
 		err = obs_uploading.ObsUploadingSettings(conf, fmt.Sprintf("output/settings/%s-%s.json", n[0], n[1]), n[0], n[1])

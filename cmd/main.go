@@ -28,7 +28,7 @@ func main() {
 
 	logger := loggerLogrus.Init()
 	t := time.Now()
-	logFileName := fmt.Sprintf("%s.log", t.Format(time.RFC3339))
+	logFileName := fmt.Sprintf("%s.log", t.Format("2006-01-02 15:04:05.000000"))
 	file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		mw := io.MultiWriter(os.Stdout, file)
@@ -74,11 +74,13 @@ func main() {
 	if ok {
 		if sig != syscall.SIGQUIT {
 			logger.Logger.Info("gracefully stopping...")
+			errFlag = true
 			exitChan <- struct{}{}
 			<-exitChan
 		}
 	}
 
+	logger.Logger.Info("OBS Uploading log file")
 	err = obs_uploading.ObsUploadLog(conf, logFileName, errFlag)
 	if err != nil {
 		logger.Logger.Error(err)

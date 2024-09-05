@@ -1,7 +1,7 @@
 providers:
   - name: aws
     namespace: hashicorp
-    min_version: 5.0.6
+    min_version: 4.22.0
   - name: sbercloud
     namespace: sbercloud-terraform
 #  - name: google

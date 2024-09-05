@@ -34,3 +34,7 @@ endif
 start:
 	rm -rf *.log
 	export https_proxy=172.23.144.4:3128 && go run cmd/main.go
+
+test-start:
+	rm -rf *.log
+	go run cmd/main.go

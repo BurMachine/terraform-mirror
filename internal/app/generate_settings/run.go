@@ -64,7 +64,7 @@ func serviceProc(name, namespace, minVersion string, registryUrl string) error {
 		return err
 	}
 
-	err, settingsFileEqual := checkExistVersions(bodyBytes, outputFolder, namespace, minVersion, name)
+	err, settingsFileEqual := checkExistVersions(bodyBytes, outputFolder, namespace, name, minVersion)
 	if err != nil {
 		return err
 	} else if settingsFileEqual {

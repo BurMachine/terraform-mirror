@@ -10,7 +10,7 @@ import (
 func ObsUpload(conf *config.Conf, dirPath string, providerNamespace, providerName string) error {
 	conf.Obs.Mu.Lock()
 	args := append([]string{"obsutil", "sync"}, fmt.Sprintf("-p=%d", 3), fmt.Sprintf("-j=%d", 1),
-		dirPath, fmt.Sprintf("obs://tf-mirror-pub/registry.terraform.io/%s/%s",
+		dirPath, fmt.Sprintf("obs://%s/registry.terraform.io/%s/%s", conf.ObsBucketPub,
 			providerNamespace, providerName))
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdout = os.Stdout
@@ -27,7 +27,7 @@ func ObsUpload(conf *config.Conf, dirPath string, providerNamespace, providerNam
 func ObsUploadingSettings(conf *config.Conf, dirPath string, providerNamespace, providerName string) error {
 	conf.Obs.Mu.Lock()
 	args := append([]string{"obsutil", "sync"}, fmt.Sprintf("-p=%d", 1), fmt.Sprintf("-j=%d", 1),
-		dirPath, fmt.Sprintf("obs://tf-mirror-int/settings/settings_providers/%s-%s.json",
+		dirPath, fmt.Sprintf("obs://%s/settings/settings_providers/%s-%s.json", conf.ObsBucketInt,
 			providerNamespace, providerName))
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdout = os.Stdout
@@ -45,9 +45,9 @@ func ObsUploadingSettings(conf *config.Conf, dirPath string, providerNamespace, 
 func ObsUploadLog(conf *config.Conf, fileName string, errFlag bool) error {
 	var path string
 	if errFlag {
-		path = fmt.Sprintf("obs://tf-mirror-int/logs/%s-%s", fileName, "FAIL")
+		path = fmt.Sprintf("obs://%s/logs/%s-%s", conf.ObsBucketInt, fileName, "FAIL")
 	} else {
-		path = fmt.Sprintf("obs://tf-mirror-int/logs/%s-%s", fileName, "SUCCESS")
+		path = fmt.Sprintf("obs://%s/logs/%s-%s", conf.ObsBucketInt, fileName, "SUCCESS")
 	}
 
 	conf.Obs.Mu.Lock()

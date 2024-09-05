@@ -20,9 +20,11 @@ type GenerateSettings struct {
 }
 
 type Conf struct {
-	ObsEndpoint        string           `yaml:"obsEndpoint"`
-	ObsAccessKey       string           `yaml:"obsAccessKey"`
-	ObsSecretKey       string           `yaml:"obsSecretKey"`
+	ObsEndpoint        string `yaml:"obsEndpoint"`
+	ObsAccessKey       string `yaml:"obsAccessKey"`
+	ObsSecretKey       string `yaml:"obsSecretKey"`
+	ObsBucketInt       string
+	ObsBucketPub       string
 	RegistryAddr       string           `yaml:"RegistryAddr,omitempty"`
 	GenerateSettingArr GenerateSettings `yaml:"generate"`
 	Obs                struct {
@@ -54,13 +56,21 @@ func (c *Conf) LoadConfig() error {
 	if c.ObsSecretKey == "" {
 		return errors.New("env getting error: obsSecretKey is empty")
 	}
-	//
-	//err := LoadConfig(c)
-	//if err != nil {
-	//	return err
-	//}
+	c.ObsBucketPub = os.Getenv("bucketPub")
+	if c.ObsBucketPub == "" {
+		return errors.New("env getting error: bucketPub is empty")
+	}
+	c.ObsBucketInt = os.Getenv("bucketInt")
+	if c.ObsBucketInt == "" {
+		return errors.New("env getting error: bucketInt is empty")
+	}
 
-	err := c.LoadGenerateSettingsYaml()
+	err := LoadConfig(c)
+	if err != nil {
+		return err
+	}
+
+	err = c.LoadGenerateSettingsYaml()
 	if err != nil {
 		return err
 	}
@@ -70,17 +80,17 @@ func (c *Conf) LoadConfig() error {
 		c.RegistryAddr = RegistryAddrDefault
 	}
 
-	//err = c.LoadSettingsObs()
-	//if err != nil {
-	//	return err
-	//}
+	err = c.LoadSettingsObs()
+	if err != nil {
+		return err
+	}
 
 	c.Obs.Mu = &sync.Mutex{}
 
-	//err = c.obsUtilConfig()
-	//if err != nil {
-	//	return err
-	//}
+	err = c.obsUtilConfig()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

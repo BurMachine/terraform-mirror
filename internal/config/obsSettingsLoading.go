@@ -19,7 +19,7 @@ func LoadConfig(conf *Conf) error {
 	}
 	input := &obs.GetObjectInput{}
 
-	input.Bucket = "tf-mirror-int"
+	input.Bucket = conf.ObsBucketInt
 	input.Key = "settings/config.yaml"
 
 	output, err := conf.Obs.ObsClient.GetObject(input)
@@ -74,7 +74,7 @@ func (c *Conf) LoadSettingsObs() error {
 	for _, provider := range c.GenerateSettingArr.Providers {
 		fileName := fmt.Sprintf("%s-%s", provider.Namespace, provider.Name)
 		input := &obs.GetObjectInput{}
-		input.Bucket = "tf-mirror-int"
+		input.Bucket = c.ObsBucketInt
 
 		input.Key = fmt.Sprintf("settings/settings_providers/%s.json", fileName)
 
